@@ -1,0 +1,14 @@
+# Python 虚拟环境
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 应用运行时生成的本地数据与日志
+projects/
+error_log.txt
+streamlit_app.log
+
+# 操作系统 / 编辑器
+.DS_Store
