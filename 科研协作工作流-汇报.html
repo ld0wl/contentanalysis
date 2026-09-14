@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>网页端想清楚，本机助手落地：科研写作协作工作流</title>
+<style>
+:root{
+  --paper:#f7f3ea;
+  --paper-2:#efe8da;
+  --ink:#1c1915;
+  --muted:#5e574d;
+  --line:#d9d1c3;
+  --card:#fffdf8;
+  --navy:#1f3d4d;
+  --navy-2:#16303d;
+  --teal:#2a6f6a;
+  --teal-soft:#e4efeb;
+  --gold:#b7791f;
+  --gold-soft:#f5e7cb;
+  --plum:#6b4a8a;
+  --plum-soft:#ece4f3;
+  --rose:#8a3d3d;
+  --rose-soft:#f3dcdc;
+  --green:#3d7a4a;
+  --green-soft:#e0efe2;
+  --sans:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","WenQuanYi Micro Hei",system-ui,sans-serif;
+  --serif:"Songti SC","Noto Serif CJK SC","Source Han Serif SC","SimSun","Palatino Linotype","Georgia",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden}
+#deck{position:relative;height:100vh;height:100dvh}
+.progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--teal),var(--gold));width:0;z-index:20;transition:width .25s}
+
+.slide{position:absolute;inset:0;display:none;flex-direction:column;padding:5vh 6vw 9.5vh;
+  background:
+    radial-gradient(1200px 600px at 100% -10%,rgba(42,111,106,.08),transparent 60%),
+    radial-gradient(900px 500px at -10% 110%,rgba(183,121,31,.10),transparent 60%),
+    var(--paper)}
+.slide.active{display:flex}
+.slide.dark{background:
+    radial-gradient(1000px 600px at 90% 0%,rgba(42,111,106,.45),transparent 60%),
+    radial-gradient(800px 500px at 0% 100%,rgba(183,121,31,.25),transparent 60%),
+    var(--navy-2);color:#f6f1e7}
+.slide.dark .kicker{color:#9ed3c9}
+.slide.dark .lead,.slide.dark .muted{color:#cfd7d3}
+.slide.dark h1,.slide.dark h2{color:#fbf7ee}
+
+.head{flex:0 0 auto;margin-bottom:1.2vh}
+.body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center}
+.kicker{color:var(--teal);letter-spacing:.16em;font-size:clamp(.72rem,1.05vw,.86rem);font-weight:700;text-transform:uppercase;margin-bottom:.55rem;display:flex;align-items:center;gap:.6rem}
+.kicker::before{content:"";width:1.6rem;height:2px;background:currentColor;opacity:.7}
+h1{font-family:var(--serif);font-size:clamp(2rem,4.2vw,3.2rem);line-height:1.2;margin:0 0 1rem;font-weight:700;letter-spacing:.01em}
+h2{font-family:var(--serif);font-size:clamp(1.45rem,2.9vw,2.15rem);line-height:1.25;margin:0 0 .35rem;font-weight:700}
+h2 em{font-style:normal;color:var(--teal)}
+.sub{color:var(--muted);font-size:clamp(.92rem,1.3vw,1.08rem);margin:0}
+p,li{font-size:clamp(.95rem,1.4vw,1.15rem);line-height:1.6}
+.lead{color:var(--muted);max-width:46em;font-size:clamp(1.02rem,1.65vw,1.28rem);line-height:1.6}
+.muted{color:var(--muted)}
+strong{color:var(--ink)}
+.slide.dark strong{color:#fff}
+
+.grid{display:grid;gap:clamp(.55rem,1vw,.9rem);grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.cols{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(.9rem,2vw,1.6rem);align-items:center;min-height:0}
+.cols.wide-right{grid-template-columns:.9fr 1.1fr}
+.cols.wide-left{grid-template-columns:1.2fr .8fr}
+.stack{display:flex;flex-direction:column;gap:clamp(.5rem,1vw,.85rem)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:clamp(.7rem,1.2vw,1rem) clamp(.8rem,1.3vw,1.1rem);box-shadow:0 10px 26px rgba(28,25,21,.05);position:relative}
+.card h3{margin:0 0 .35rem;font-size:clamp(.95rem,1.35vw,1.1rem);color:var(--navy);display:flex;align-items:center;gap:.5rem}
+.card p,.card li{font-size:clamp(.88rem,1.28vw,1.05rem);color:var(--muted);margin:0;line-height:1.55}
+.card ul{margin:.3rem 0 0;padding-left:1.15em}
+.card.accent-teal{border-top:4px solid var(--teal)}
+.card.accent-navy{border-top:4px solid var(--navy)}
+.card.accent-gold{border-top:4px solid var(--gold)}
+.card.accent-plum{border-top:4px solid var(--plum)}
+.card.accent-rose{border-top:4px solid var(--rose)}
+.card.accent-green{border-top:4px solid var(--green)}
+.num{position:absolute;top:.55rem;right:.8rem;font-family:var(--serif);font-size:1.6rem;color:var(--line);font-weight:700;line-height:1}
+
+.ico{width:1.15em;height:1.15em;flex:0 0 auto;vertical-align:-.2em}
+.ico.big{width:2rem;height:2rem}
+
+.one{margin-top:clamp(.6rem,1.4vh,1rem);padding:.75rem 1.1rem;border-left:4px solid var(--gold);background:var(--gold-soft);border-radius:0 12px 12px 0;font-size:clamp(.95rem,1.45vw,1.15rem);line-height:1.55}
+.one.rose{border-left-color:var(--rose);background:var(--rose-soft)}
+.one.teal{border-left-color:var(--teal);background:var(--teal-soft)}
+.slide.dark .one{background:rgba(255,255,255,.08);border-left-color:var(--gold);color:#f6f1e7}
+
+table{width:100%;border-collapse:separate;border-spacing:0;margin-top:.4rem;font-size:clamp(.84rem,1.25vw,1.05rem);background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:.6rem .8rem;text-align:left;vertical-align:top;line-height:1.5}
+th:last-child,td:last-child{border-right:0}
+tr:last-child td{border-bottom:0}
+th{background:var(--navy);color:#f6f1e7;font-weight:650}
+th.c-web{background:var(--teal)} th.c-bot{background:var(--navy)} th.c-cli{background:var(--gold)} th.c-ide{background:var(--plum)} th.c-verify{background:var(--rose)}
+td{color:var(--muted)} td strong{color:var(--ink)}
+td.row-h{background:var(--paper-2);color:var(--ink);font-weight:650;white-space:nowrap}
+tr.ok td{background:#f4faf5} tr.warn td{background:#fbf5e9} tr.bad td{background:#fbeeee}
+table.compact{font-size:clamp(.76rem,1.08vw,.95rem)}
+table.compact th,table.compact td{padding:.42rem .6rem;line-height:1.42}
+
+.tag{display:inline-block;border-radius:6px;padding:.08rem .5rem;font-size:.78em;font-weight:650;white-space:nowrap;vertical-align:.05em}
+.tag.web{background:var(--teal-soft);color:var(--teal)}
+.tag.bot{background:#dfe7ec;color:var(--navy)}
+.tag.cli{background:var(--gold-soft);color:#8a5a12}
+.tag.ide{background:var(--plum-soft);color:var(--plum)}
+.tag.verify{background:var(--rose-soft);color:var(--rose)}
+.tag.human{background:#e6e3dd;color:#3a3a3a}
+.tag.ok{background:var(--green-soft);color:var(--green)}
+
+.tiny{font-size:clamp(.78rem,1.05vw,.9rem);color:var(--muted);margin:.6rem 0 0;line-height:1.5}
+.slide.dark .tiny{color:#b9c4bf}
+svg.diagram{width:100%;height:auto;display:block}
+svg.diagram text{font-family:var(--sans)}
+.figure{min-height:0;display:flex;align-items:center;justify-content:center}
+.figure svg{max-height:68vh;width:100%;height:auto}
+
+.flow{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.5rem}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:.38rem .85rem;font-size:clamp(.82rem,1.15vw,.98rem);display:inline-flex;align-items:center;gap:.4rem;box-shadow:0 4px 12px rgba(28,25,21,.04)}
+.pill b{display:inline-flex;align-items:center;justify-content:center;width:1.35rem;height:1.35rem;border-radius:50%;background:var(--navy);color:#fff;font-size:.75rem;font-weight:700}
+.arrow{color:var(--gold);font-weight:700;font-size:1.1rem}
+
+.steps{list-style:none;margin:0;padding:0;position:relative}
+.steps::before{content:"";position:absolute;left:1.05rem;top:.6rem;bottom:.6rem;width:2px;background:var(--line)}
+.steps li{position:relative;padding-left:3rem;margin:0 0 clamp(.5rem,1.4vh,.9rem);font-size:clamp(.95rem,1.42vw,1.15rem);line-height:1.5}
+.steps li::before{content:attr(data-n);position:absolute;left:0;top:0;width:2.15rem;height:2.15rem;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;box-shadow:0 0 0 4px var(--paper)}
+.steps li.key::before{background:var(--rose)}
+.steps li.human::before{background:#3a3a3a}
+.steps li .tag{margin-right:.35rem}
+
+ol.talk{margin:.2rem 0 0;padding-left:0;list-style:none;counter-reset:t}
+ol.talk li{counter-increment:t;position:relative;padding-left:3.4rem;margin:0 0 clamp(.7rem,1.8vh,1.2rem);font-size:clamp(1.1rem,1.85vw,1.45rem);line-height:1.55}
+ol.talk li::before{content:counter(t);position:absolute;left:0;top:.15rem;width:2.4rem;height:2.4rem;border-radius:8px;background:var(--gold);color:#fff;font-family:var(--serif);font-weight:700;font-size:1.2rem;display:flex;align-items:center;justify-content:center}
+.slide.dark ol.talk li::before{background:var(--gold)}
+ol.talk li.key::before{background:var(--rose)}
+
+.toc{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.7rem,1.4vw,1.2rem);margin-top:.6rem}
+.toc .card{padding:1.3rem 1.3rem 1.4rem;min-height:15rem}
+.toc .card .big-n{font-family:var(--serif);font-size:3.2rem;line-height:1;color:var(--gold);margin-bottom:.6rem}
+.toc .card h3{font-size:clamp(1.1rem,1.7vw,1.35rem);margin-bottom:.6rem}
+.toc .card p{font-size:clamp(.95rem,1.38vw,1.12rem);line-height:1.65}
+
+.ladder{display:flex;flex-direction:column;gap:.4rem}
+.ladder div{border-radius:10px;padding:.55rem .9rem;color:#fff;font-size:clamp(.86rem,1.2vw,1rem);display:flex;justify-content:space-between;align-items:center;gap:.8rem}
+.ladder div small{opacity:.85;font-weight:400}
+.ladder .l1{background:var(--green)} .ladder .l2{background:var(--teal)} .ladder .l3{background:var(--gold)} .ladder .l4{background:var(--rose)}
+
+.checklist{list-style:none;margin:0;padding:0}
+.checklist li{position:relative;padding-left:2rem;margin:0 0 .65rem;font-size:clamp(.92rem,1.35vw,1.08rem);line-height:1.5}
+.checklist li::before{content:"";position:absolute;left:0;top:.2rem;width:1.25rem;height:1.25rem;border-radius:5px;border:2px solid var(--rose);background:var(--rose-soft)}
+.checklist li::after{content:"";position:absolute;left:.4rem;top:.32rem;width:.3rem;height:.6rem;border:solid var(--rose);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+
+.legend{display:flex;flex-wrap:wrap;gap:.45rem 1rem;margin-top:.5rem;font-size:clamp(.76rem,1.05vw,.9rem);color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+.legend i{width:.85rem;height:.85rem;border-radius:3px;display:inline-block}
+
+.footer{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  padding:.55rem 1.3rem;background:rgba(247,243,234,.92);backdrop-filter:blur(6px);border-top:1px solid var(--line);font-size:.8rem;color:var(--muted);z-index:10}
+.footer .nav button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:.25rem .65rem;cursor:pointer;font:inherit;margin-left:.3rem}
+.footer .nav button:hover{background:var(--paper-2)}
+.notes{position:fixed;left:0;right:0;bottom:2.6rem;max-height:34vh;overflow:auto;background:rgba(28,25,21,.94);color:#f0ebe1;padding:.9rem 1.5rem;font-size:.95rem;line-height:1.6;display:none;z-index:9;border-top:3px solid var(--gold)}
+.notes.show{display:block}
+.notes b{color:#f3d9a3}
+
+@media (max-width:900px){.cols,.cols.wide-right,.cols.wide-left,.toc,.grid-4{grid-template-columns:1fr}.slide{padding:4vh 5vw 10vh;overflow:auto}}
+@media print{.footer,.progress,.notes{display:none!important}.slide{display:flex!important;position:relative;page-break-after:always;height:100vh}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 5h16v11H9l-5 4z"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M8 9h8M8 12.5h5"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="9" y="2.5" width="6" height="3" rx="1" fill="currentColor"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M8.5 11h7M8.5 15h5"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M7 9l3 3-3 3M12 15h5"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M8 7L3 12l5 5M16 7l5 5-5 5M13.5 5l-3 14"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.2 9.5 3.75 3.75 0 0 1 17.5 18z"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5V5.5M6.5 18H20"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3l8 3v6c0 4.5-3.2 7.7-8 9-4.8-1.3-8-4.5-8-9V6z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M6 3h9l4 4v14H6z M15 3v4h4"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M9 12h6M9 16h4"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="14" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M11 11l9-9M16 6l2 2M13 9l2 2"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M3 10h18M7 15h4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 21c1-4 4-6 8-6s7 2 8 6"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8.5" y="8.5" width="7" height="7" rx="1" fill="currentColor"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14.5-4M4 13a8 8 0 0 0 14.5 4M20 4v4h-4M4 20v-4h4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15.5 15.5L21 21"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M5 21V4h12l-2 4 2 4H5"/></symbol>
+    <symbol id="i-gate" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 21V8l8-5 8 5v13M9 21v-8h6v8"/></symbol>
+  </defs>
+</svg>
+
+<div class="progress" id="progress"></div>
+<div id="deck">
+
+<!-- 1 封面 -->
+<section class="slide dark" data-notes="开场 30 秒：今天不讲课题内容，讲我怎样用一套 AI 分工把一篇论文从材料推到可提交，并强调最后一道独立文献核验。">
+  <div class="body">
+    <div class="kicker">科研协作 · 工作流汇报 · 组会</div>
+    <h1>网页端想清楚，本机助手落地<br>一篇论文怎样写完</h1>
+    <p class="lead">不讲具体在研课题。讲系统：角色怎么拆、文献怎么管、云端电脑和多端如何协作，以及怎样少让文献出错——最后一道是<strong>独立文献核验</strong>。</p>
+    <svg class="diagram" viewBox="0 0 980 150" style="margin-top:2vh" aria-label="一句话流程">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker></defs>
+      <g font-size="14" fill="#f6f1e7" text-anchor="middle">
+        <rect x="10" y="30" width="170" height="78" rx="14" fill="#2a6f6a"/>
+        <text x="95" y="62" font-weight="700">判断</text><text x="95" y="88" font-size="12" fill="#dbeeea">在网页端</text>
+        <line x1="184" y1="69" x2="208" y2="69" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah)"/>
+        <rect x="212" y="30" width="170" height="78" rx="14" fill="#f6f1e7"/>
+        <text x="297" y="62" font-weight="700" fill="#1f3d4d">调度</text><text x="297" y="88" font-size="12" fill="#5e574d">在本机 Grok Bot</text>
+        <line x1="386" y1="69" x2="410" y2="69" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah)"/>
+        <rect x="414" y="30" width="170" height="78" rx="14" fill="#b7791f"/>
+        <text x="499" y="62" font-weight="700">长活</text><text x="499" y="88" font-size="12" fill="#fbecd0">走本地 CLI / Cursor</text>
+        <line x1="588" y1="69" x2="612" y2="69" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah)"/>
+        <rect x="616" y="30" width="170" height="78" rx="14" fill="#f6f1e7"/>
+        <text x="701" y="62" font-weight="700" fill="#1f3d4d">正本</text><text x="701" y="88" font-size="12" fill="#5e574d">在文件夹</text>
+        <line x1="790" y1="69" x2="814" y2="69" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah)"/>
+        <rect x="818" y="30" width="152" height="78" rx="14" fill="#8a3d3d"/>
+        <text x="894" y="62" font-weight="700">独立核验</text><text x="894" y="88" font-size="12" fill="#f7dada">再提交</text>
+      </g>
+      <text x="490" y="138" text-anchor="middle" font-size="13" fill="#b9c4bf">聊天是草稿纸；能留下来的只有文件夹里的正本</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 2 目录 -->
+<section class="slide" data-notes="四个部分，约 15 分钟。第三、四部分是重点：文献分工和最后的独立核验。">
+  <div class="head">
+    <div class="kicker">今天讲什么</div>
+    <h2>四个部分：分工 · 装置 · 文献 · 收口</h2>
+    <p class="sub">前两部分讲「谁来做、在哪做」，后两部分讲「怎样不让文献出错、怎样才算能交」。</p>
+  </div>
+  <div class="body">
+    <div class="toc">
+      <div class="card accent-teal"><div class="big-n">01</div><h3><svg class="ico"><use href="#i-chat"/></svg>分工</h3><p>四层工具谁想、谁派、谁干、谁验收；一个项目一个 bot，通用能力另开；总盘、写入权、口径卡、冻结。</p></div>
+      <div class="card accent-navy"><div class="big-n">02</div><h3><svg class="ico"><use href="#i-cloud"/></svg>装置</h3><p>Grok Bot 自己有一台云端电脑；Win / Mac / 安卓同时在线；可监督、可打断、产物落盘。</p></div>
+      <div class="card accent-gold"><div class="big-n">03</div><h3><svg class="ico"><use href="#i-book"/></svg>文献</h3><p>收、读、核、编目四件事不让同一个号做完；对接 Zotero + Obsidian 正库；转述四级与页码纪律；合法获取。</p></div>
+      <div class="card accent-rose"><div class="big-n">04</div><h3><svg class="ico"><use href="#i-shield"/></svg>收口</h3><p><strong>最终独立文献核验</strong>：定稿冻结后逐条全量核对原文，出报告、人签字；再用一篇课程论文走一遍全流程。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 全景图 -->
+<section class="slide" data-notes="这一页是全图。上面三层是想、派、干；中间是角色；下面是正本；最底下是收口：定稿冻结 → 独立核验 → 人提交。后面每一页都是在放大这张图的某一块。">
+  <div class="head">
+    <div class="kicker">全景</div>
+    <h2>一张图：从「想清楚」到「能提交」</h2>
+    <p class="sub">横向是三层工具，纵向是四道关口。后面每页都是在放大其中一块。</p>
+  </div>
+  <div class="body figure">
+    <svg class="diagram" viewBox="0 0 980 500" aria-label="全景架构图">
+      <defs>
+        <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker>
+        <marker id="ah2r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#8a3d3d"/></marker>
+        <filter id="sh" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".10"/></filter>
+      </defs>
+      <!-- 行 1 -->
+      <g text-anchor="middle">
+        <rect x="20" y="14" width="245" height="86" rx="14" fill="#2a6f6a" filter="url(#sh)"/>
+        <text x="142" y="44" fill="#fff" font-size="16" font-weight="700">网页端 · 想</text>
+        <text x="142" y="68" fill="#dbeeea" font-size="11">Grok / GPT / Claude：问题 · 理论 · 结构</text>
+        <text x="142" y="88" fill="#dbeeea" font-size="11">决定「论文说什么」</text>
+        <line x1="270" y1="62" x2="360" y2="62" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah2)"/>
+        <text x="315" y="52" fill="#8a5a12" font-size="11">方案另存成文件</text>
+        <rect x="365" y="14" width="245" height="86" rx="14" fill="#1f3d4d" filter="url(#sh)"/>
+        <text x="487" y="44" fill="#fff" font-size="16" font-weight="700">本机 Grok Bot · 派 / 盯 / 验</text>
+        <text x="487" y="68" fill="#d7cfc2" font-size="11">秘书：拆活 · 写总盘 · 盯交接 · 验收</text>
+        <text x="487" y="88" fill="#d7cfc2" font-size="11">决定「东西在哪、谁来做」</text>
+        <line x1="615" y1="62" x2="705" y2="62" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah2)"/>
+        <text x="660" y="52" fill="#8a5a12" font-size="11">按已写方案派单</text>
+        <rect x="710" y="14" width="250" height="86" rx="14" fill="#b7791f" filter="url(#sh)"/>
+        <text x="835" y="44" fill="#fff" font-size="16" font-weight="700">执行器 · 干</text>
+        <text x="835" y="68" fill="#fbecd0" font-size="11">本地 Grok CLI：长文件 / 转写 / 批量</text>
+        <text x="835" y="88" fill="#fbecd0" font-size="11">Cursor / Codex：脚本 · 模板 · 仓库</text>
+      </g>
+      <!-- 行 2 角色 -->
+      <line x1="487" y1="100" x2="487" y2="132" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah2)"/>
+      <text x="500" y="122" fill="#8a5a12" font-size="11">拆活 · 只给写入权</text>
+      <g text-anchor="middle" font-size="12">
+        <rect x="20" y="140" width="290" height="70" rx="12" fill="#fffdf8" stroke="#2a6f6a" stroke-width="1.5"/>
+        <text x="165" y="165" fill="#1c1915" font-size="13" font-weight="700">项目 bot A · B · C…</text>
+        <text x="165" y="186" fill="#5e574d" font-size="11">只写自己的稿目录 · 主张锁在口径卡 · 在审即冻结</text>
+        <rect x="330" y="140" width="315" height="70" rx="12" fill="#fffdf8" stroke="#d7cfc2"/>
+        <text x="487" y="165" fill="#1c1915" font-size="13" font-weight="700">通用文献角色（四个号）</text>
+        <text x="487" y="186" fill="#5e574d" font-size="11">文献助手（收）· 精读（读）· 核验（核）· 知识库（编目）</text>
+        <rect x="665" y="140" width="250" height="70" rx="12" fill="#e8efe9" stroke="#2a6f6a"/>
+        <text x="790" y="165" fill="#1c1915" font-size="13" font-weight="700">数据获取 · 职责清理</text>
+        <text x="790" y="186" fill="#5e574d" font-size="11">只采集 / 管写入权与开闭号</text>
+      </g>
+      <!-- 行 3 正本 -->
+      <line x1="165" y1="210" x2="165" y2="240" stroke="#b7791f" stroke-width="2" marker-end="url(#ah2)"/>
+      <line x1="487" y1="210" x2="487" y2="240" stroke="#b7791f" stroke-width="2" marker-end="url(#ah2)"/>
+      <line x1="790" y1="210" x2="790" y2="240" stroke="#b7791f" stroke-width="2" marker-end="url(#ah2)"/>
+      <line x1="940" y1="100" x2="940" y2="240" stroke="#b7791f" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah2)"/>
+      <text transform="translate(958 172) rotate(90)" text-anchor="middle" fill="#8a5a12" font-size="11">产物进指定路径</text>
+      <g text-anchor="middle">
+        <rect x="20" y="246" width="940" height="74" rx="14" fill="#fffdf8" stroke="#d7cfc2" filter="url(#sh)"/>
+        <text x="490" y="274" fill="#1c1915" font-size="15" font-weight="700">文件夹正本 · 唯一真相</text>
+        <text x="490" y="300" fill="#5e574d" font-size="12">总盘 · 各角色目录 · 文献馆（Year_Author_Title）· Zotero 书目与 citekey · Obsidian 索引与阅读笔记</text>
+      </g>
+      <!-- 行 4 收口 -->
+      <line x1="150" y1="320" x2="150" y2="356" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah2)"/>
+      <text x="165" y="344" fill="#8a5a12" font-size="11" text-anchor="start">写完 → 锁定</text>
+      <g text-anchor="middle">
+        <rect x="20" y="362" width="260" height="88" rx="14" fill="#fffdf8" stroke="#1f3d4d" stroke-width="1.5"/>
+        <text x="150" y="392" fill="#1c1915" font-size="15" font-weight="700">定稿冻结</text>
+        <text x="150" y="414" fill="#5e574d" font-size="12">正文、引用、页码不再改</text>
+        <text x="150" y="434" fill="#5e574d" font-size="11">锁定后才交出去核</text>
+        <line x1="284" y1="406" x2="336" y2="406" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah2)"/>
+        <rect x="343" y="362" width="330" height="88" rx="14" fill="#8a3d3d" filter="url(#sh)"/>
+        <text x="508" y="392" fill="#fff" font-size="15" font-weight="700">最终独立文献核验</text>
+        <text x="508" y="414" fill="#f7dada" font-size="12">独立号 · 只读原文 PDF · 逐条全量 · 出报告</text>
+        <text x="508" y="434" fill="#f7dada" font-size="11">不改正文 · 不收新文献 · 不看写稿对话</text>
+        <line x1="677" y1="406" x2="729" y2="406" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah2)"/>
+        <text x="703" y="396" fill="#3d7a4a" font-size="11">全部通过</text>
+        <path d="M508 450 L508 474 L150 474 L150 456" fill="none" stroke="#8a3d3d" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ah2r)"/>
+        <text x="330" y="492" fill="#8a3d3d" font-size="11">任一不过 → 退回项目 bot：改转述 / 删页码 / 降为仅书目 / 补文献 → 重新冻结再核</text>
+        <rect x="736" y="362" width="224" height="88" rx="14" fill="#3a3a3a" filter="url(#sh)"/>
+        <text x="848" y="392" fill="#fff" font-size="15" font-weight="700">人拍板 · 提交</text>
+        <text x="848" y="414" fill="#e6e3dd" font-size="12">签字核验报告</text>
+        <text x="848" y="434" fill="#e6e3dd" font-size="11">最后一下由人点</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- 4 四层工具 -->
+<section class="slide" data-notes="四层各有自己的动词：想、派、干、验收。改「论文说什么」一律回网页端；CLI 和 Cursor 只是工具。">
+  <div class="head">
+    <div class="kicker">01 分工 · 四层工具</div>
+    <h2>谁想、谁派、谁干、谁验收</h2>
+  </div>
+  <div class="body">
+    <svg class="diagram" viewBox="0 0 980 250" aria-label="四层分工">
+      <defs><filter id="s4" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".12"/></filter>
+      <marker id="ah4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker></defs>
+      <g text-anchor="middle">
+        <rect x="10" y="20" width="220" height="200" rx="18" fill="#fffdf8" stroke="#2a6f6a" stroke-width="2" filter="url(#s4)"/>
+        <rect x="10" y="20" width="220" height="46" rx="18" fill="#2a6f6a"/><rect x="10" y="46" width="220" height="20" fill="#2a6f6a"/>
+        <text x="120" y="50" fill="#fff" font-size="16" font-weight="700">网页端 · 想</text>
+        <text x="120" y="96" font-size="13" fill="#1c1915" font-weight="600">Grok / GPT / Claude</text>
+        <text x="120" y="122" font-size="12" fill="#5e574d">论文说什么</text>
+        <text x="120" y="144" font-size="12" fill="#5e574d">问题 · 理论 · 结构</text>
+        <text x="120" y="166" font-size="12" fill="#5e574d">比较方案 · 改稿策略</text>
+        <text x="120" y="200" font-size="11" fill="#2a6f6a">产出：方案文件（另存）</text>
+        <line x1="236" y1="120" x2="260" y2="120" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah4)"/>
+
+        <rect x="265" y="20" width="220" height="200" rx="18" fill="#1f3d4d" filter="url(#s4)"/>
+        <text x="375" y="50" fill="#fff" font-size="16" font-weight="700">本机 Grok Bot · 派</text>
+        <line x1="285" y1="66" x2="465" y2="66" stroke="#4b6a7a"/>
+        <text x="375" y="96" font-size="13" fill="#f6f1e7" font-weight="600">秘书 + 专职角色</text>
+        <text x="375" y="122" font-size="12" fill="#d7cfc2">东西在哪、谁来做</text>
+        <text x="375" y="144" font-size="12" fill="#d7cfc2">拆活 · 盯交接 · 验收</text>
+        <text x="375" y="166" font-size="12" fill="#d7cfc2">多端盯进度 · 跨文件夹</text>
+        <text x="375" y="200" font-size="11" fill="#9ed3c9">产出：总盘 · 派单 · 验收记录</text>
+        <line x1="491" y1="120" x2="515" y2="120" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah4)"/>
+
+        <rect x="520" y="20" width="220" height="200" rx="18" fill="#fffdf8" stroke="#b7791f" stroke-width="2" filter="url(#s4)"/>
+        <rect x="520" y="20" width="220" height="46" rx="18" fill="#b7791f"/><rect x="520" y="46" width="220" height="20" fill="#b7791f"/>
+        <text x="630" y="50" fill="#fff" font-size="16" font-weight="700">本地 CLI · 干</text>
+        <text x="630" y="96" font-size="13" fill="#1c1915" font-weight="600">Grok 命令行</text>
+        <text x="630" y="122" font-size="12" fill="#5e574d">全书 / 长章 / 转写</text>
+        <text x="630" y="144" font-size="12" fill="#5e574d">转 Markdown · 批量执行</text>
+        <text x="630" y="166" font-size="12" fill="#5e574d">按已写方案执行</text>
+        <text x="630" y="200" font-size="11" fill="#8a5a12">产出：进 owner 目录</text>
+        <line x1="746" y1="120" x2="770" y2="120" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah4)"/>
+
+        <rect x="775" y="20" width="195" height="200" rx="18" fill="#fffdf8" stroke="#6b4a8a" stroke-width="2" filter="url(#s4)"/>
+        <rect x="775" y="20" width="195" height="46" rx="18" fill="#6b4a8a"/><rect x="775" y="46" width="195" height="20" fill="#6b4a8a"/>
+        <text x="872" y="50" fill="#fff" font-size="16" font-weight="700">Cursor · 干</text>
+        <text x="872" y="96" font-size="13" fill="#1c1915" font-weight="600">编码型助手</text>
+        <text x="872" y="122" font-size="12" fill="#5e574d">脚本 · 模板 · 仓库</text>
+        <text x="872" y="144" font-size="12" fill="#5e574d">复杂文件改写</text>
+        <text x="872" y="166" font-size="12" fill="#5e574d">可复现流水线</text>
+        <text x="872" y="200" font-size="11" fill="#6b4a8a">产出：进指定路径</text>
+      </g>
+    </svg>
+    <div class="grid grid-4" style="margin-top:.8rem">
+      <div class="card"><h3><span class="tag web">想</span>只在这里改主张</h3><p>改变「论文说什么」一律回网页端；网页端不当档案库，全书塞进去会贵且糊。</p></div>
+      <div class="card"><h3><span class="tag bot">派</span>不写正文主张</h3><p>秘书不把长书读进对话；它管路径、写入权、进度和验收，不替人判断。</p></div>
+      <div class="card"><h3><span class="tag cli">干</span>不做理论拍板</h3><p>CLI 不是第二大脑。它把已经写清楚的方案跑完，产物必须进指定文件夹。</p></div>
+      <div class="card"><h3><span class="tag ide">干</span>不是项目 owner</h3><p>Cursor 默认不是文献中枢，不替代总盘与冻结纪律；输出由秘书 / owner 验收。</p></div>
+    </div>
+    <p class="tiny">CLI 和 Cursor 是工具，不是 bot、不是项目 owner。谁的目录谁负责，工具只往里放东西。</p>
+  </div>
+</section>
+
+<!-- 5 功效对照 -->
+<section class="slide" data-notes="这张表回答「为什么不用一个工具做完」。四者互补不互替。">
+  <div class="head">
+    <div class="kicker">01 分工 · 功效对照</div>
+    <h2>网页端、Grok Bot、本地 CLI、Cursor 各自擅长什么</h2>
+  </div>
+  <div class="body">
+    <table>
+      <tr><th style="width:9%"></th><th class="c-web">网页端</th><th class="c-bot">本机 Grok Bot</th><th class="c-cli">本地 Grok CLI</th><th class="c-ide">Cursor / Codex 类</th></tr>
+      <tr><td class="row-h">擅长</td><td>深想、比较方案、改稿策略</td><td>多角色调度、跨文件夹验收、多端盯进度</td><td>全书 / 长章、转 Markdown、按提示词批量执行</td><td>脚本、模板套用、代码仓、可复现流水线</td></tr>
+      <tr><td class="row-h">不擅长 / 不做</td><td>当档案库；塞进全书会贵且糊</td><td>不写正文主张；不把长书读进对话</td><td>不做理论拍板；不是第二大脑</td><td>默认不是文献中枢；不替代总盘与冻结纪律</td></tr>
+      <tr><td class="row-h">正本在哪</td><td>方案要另存成文件</td><td>总盘 + 各角色目录</td><td>输出进 owner 目录</td><td>输出进指定路径，由秘书 / owner 验收</td></tr>
+      <tr><td class="row-h">典型任务</td><td>定研究问题、选理论、定章节；审稿意见怎么回</td><td>「这篇稿现在缺什么、谁去补」；多稿并行不串</td><td>整本书拆章转 MD；批量按模板出摘要底稿</td><td>套学校 Word 模板、统一引号与格式、写清洗脚本</td></tr>
+      <tr><td class="row-h">一句话</td><td><strong>想清楚</strong></td><td><strong>派出去、盯住、验回来</strong></td><td><strong>把长活干完</strong></td><td><strong>把能自动化的做成步骤</strong></td></tr>
+    </table>
+    <div class="one">互补，不互相取代。课程论文套学校模板、改引号，可以交给编码型助手；主张和结构仍回网页端。</div>
+  </div>
+</section>
+
+<!-- 6 角色怎么拆 -->
+<section class="slide" data-notes="秘书只写总盘，项目 bot 只写自己的稿目录。默认不新开 bot；只有长期并行、上下文会污染时才开专属 bot。">
+  <div class="head">
+    <div class="kicker">01 分工 · 角色怎么拆</div>
+    <h2>一个项目一个 bot，通用能力另开</h2>
+  </div>
+  <div class="body figure">
+    <svg class="diagram" viewBox="0 0 980 330" aria-label="角色结构">
+      <defs><marker id="ah6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker></defs>
+      <rect x="360" y="8" width="260" height="64" rx="14" fill="#1f3d4d"/>
+      <text x="490" y="35" text-anchor="middle" fill="#f6f1e7" font-size="16" font-weight="700">秘书（总负责）</text>
+      <text x="490" y="57" text-anchor="middle" fill="#d7cfc2" font-size="12">只写总盘 · 拆活 · 分写入权 · 验收</text>
+      <line x1="490" y1="72" x2="490" y2="100" stroke="#b7791f" stroke-width="2"/>
+      <line x1="110" y1="100" x2="875" y2="100" stroke="#b7791f" stroke-width="2"/>
+      <g stroke="#b7791f" stroke-width="2" marker-end="url(#ah6)">
+        <line x1="110" y1="100" x2="110" y2="118"/><line x1="305" y1="100" x2="305" y2="118"/><line x1="500" y1="100" x2="500" y2="118"/><line x1="695" y1="100" x2="695" y2="118"/><line x1="875" y1="100" x2="875" y2="118"/>
+      </g>
+      <g text-anchor="middle">
+        <rect x="20" y="122" width="180" height="76" rx="12" fill="#fffdf8" stroke="#2a6f6a" stroke-width="1.6"/>
+        <text x="110" y="150" font-size="13" font-weight="700" fill="#1c1915">项目 bot A</text>
+        <text x="110" y="172" font-size="11" fill="#5e574d">只写自己的稿目录</text>
+        <text x="110" y="188" font-size="11" fill="#5e574d">写完可改名复用</text>
+        <rect x="215" y="122" width="180" height="76" rx="12" fill="#fffdf8" stroke="#2a6f6a" stroke-width="1.6"/>
+        <text x="305" y="150" font-size="13" font-weight="700" fill="#1c1915">项目 bot B</text>
+        <text x="305" y="172" font-size="11" fill="#5e574d">主张 / 样本锁在口径卡</text>
+        <text x="305" y="188" font-size="11" fill="#5e574d">改口径先回网页端</text>
+        <rect x="410" y="122" width="180" height="76" rx="12" fill="#fffdf8" stroke="#2a6f6a" stroke-width="1.6" stroke-dasharray="6 4"/>
+        <text x="500" y="150" font-size="13" font-weight="700" fill="#1c1915">项目 bot C（在审）</text>
+        <text x="500" y="172" font-size="11" fill="#8a3d3d">冻结：不派活、不改主张</text>
+        <text x="500" y="188" font-size="11" fill="#5e574d">审回来再解冻</text>
+        <rect x="620" y="122" width="150" height="76" rx="12" fill="#e8efe9" stroke="#2a6f6a"/>
+        <text x="695" y="150" font-size="13" font-weight="700" fill="#1c1915">数据获取</text>
+        <text x="695" y="172" font-size="11" fill="#5e574d">只采集，不分析</text>
+        <text x="695" y="188" font-size="11" fill="#5e574d">产物交 owner 目录</text>
+        <rect x="790" y="122" width="170" height="76" rx="12" fill="#f3e6cc" stroke="#b7791f"/>
+        <text x="875" y="150" font-size="13" font-weight="700" fill="#1c1915">职责清理</text>
+        <text x="875" y="172" font-size="11" fill="#5e574d">写入权 / 开号闭号</text>
+        <text x="875" y="188" font-size="11" fill="#5e574d">防越权、防重复建号</text>
+      </g>
+      <text x="490" y="228" text-anchor="middle" font-size="12" fill="#5e574d">通用文献能力：不绑某篇稿，所有项目 bot 共用；<tspan fill="#8a3d3d" font-weight="700">收与核不是同一个号</tspan></text>
+      <g text-anchor="middle">
+        <rect x="70" y="240" width="200" height="76" rx="12" fill="#fffdf8" stroke="#d7cfc2"/>
+        <text x="170" y="268" font-size="13" font-weight="700" fill="#1c1915">文献助手（收）</text>
+        <text x="170" y="290" font-size="11" fill="#5e574d">检索 · 下载 · 转 MD · 入馆</text>
+        <text x="170" y="306" font-size="11" fill="#8a3d3d">不核自己收的</text>
+        <rect x="290" y="240" width="200" height="76" rx="12" fill="#fffdf8" stroke="#d7cfc2"/>
+        <text x="390" y="268" font-size="13" font-weight="700" fill="#1c1915">文献精读（读）</text>
+        <text x="390" y="290" font-size="11" fill="#5e574d">长书：分章底稿 + 人读导读</text>
+        <text x="390" y="306" font-size="11" fill="#8a3d3d">不为某篇稿「读出需要的意思」</text>
+        <rect x="510" y="240" width="200" height="76" rx="12" fill="#fffdf8" stroke="#8a3d3d" stroke-width="1.6"/>
+        <text x="610" y="268" font-size="13" font-weight="700" fill="#8a3d3d">文献核验（核）</text>
+        <text x="610" y="290" font-size="11" fill="#5e574d">写作中抽查 + 定稿后全量</text>
+        <text x="610" y="306" font-size="11" fill="#8a3d3d">只核，不收、不改正文</text>
+        <rect x="730" y="240" width="200" height="76" rx="12" fill="#fffdf8" stroke="#d7cfc2"/>
+        <text x="830" y="268" font-size="13" font-weight="700" fill="#1c1915">文献知识库（编目）</text>
+        <text x="830" y="290" font-size="11" fill="#5e574d">Zotero + Obsidian 正库</text>
+        <text x="830" y="306" font-size="11" fill="#8a3d3d">不是第二座文献馆</text>
+      </g>
+    </svg>
+  </div>
+  <p class="tiny">默认不新开 bot。新开一篇论文本身不够当理由；只有长期并行、上下文会污染时，才给该稿专属 bot。写完可以改名复用。</p>
+</section>
+
+<!-- 7 治理机制 -->
+<section class="slide" data-notes="前面反复出现的几个词在这里定义一下。总盘是唯一的项目状态文件；口径卡锁主张、样本、术语；写入权决定谁能写哪个目录；冻结是在审、搁置项目的保护。">
+  <div class="head">
+    <div class="kicker">01 分工 · 让分工真的成立的四个机制</div>
+    <h2>总盘、写入权、口径卡、冻结</h2>
+    <p class="sub">分工只在提示词里写「你只做 X」是不够的；要有文件和权限把它落下来。</p>
+  </div>
+  <div class="body cols wide-left">
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card accent-navy"><h3><svg class="ico" style="color:var(--navy)"><use href="#i-clip"/></svg>总盘</h3><p>秘书独占写入的项目总表：每篇稿的状态（写作 / 在审 / 搁置）、正本路径、当前 owner、待办与验收记录。<strong>任何人找东西先看总盘</strong>，不翻聊天。</p></div>
+      <div class="card accent-gold"><h3><svg class="ico" style="color:var(--gold)"><use href="#i-key"/></svg>写入权</h3><p>一个目录只有一个 owner 能写。项目 bot 写稿目录，文献助手写文献馆，知识库写 Zotero / Obsidian，秘书写总盘。工具（CLI / Cursor）的产物落到 owner 目录，由 owner 验收。</p></div>
+      <div class="card accent-teal"><h3><svg class="ico" style="color:var(--teal)"><use href="#i-card"/></svg>口径卡</h3><p>每篇稿一张：研究问题、核心主张、样本与码本、关键术语的固定说法。<strong>改口径必须先回网页端重新想</strong>，再由人改卡，bot 不得在执行中顺手改。</p></div>
+      <div class="card accent-rose"><h3><svg class="ico" style="color:var(--rose)"><use href="#i-lock"/></svg>冻结</h3><p>在审、搁置或已定稿的项目一律冻结：不派活、不改主张、不动引用。冻结也是<strong>最终独立核验的前提</strong>——核的是不会再变的稿。</p></div>
+    </div>
+    <div class="figure">
+      <svg class="diagram" viewBox="0 0 380 330" aria-label="写入权示意">
+        <rect x="110" y="10" width="160" height="50" rx="12" fill="#1f3d4d"/>
+        <text x="190" y="41" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">秘书</text>
+        <line x1="190" y1="60" x2="190" y2="92" stroke="#b7791f" stroke-width="2"/>
+        <rect x="70" y="92" width="240" height="40" rx="10" fill="#fffdf8" stroke="#1f3d4d" stroke-width="1.6"/>
+        <text x="190" y="118" text-anchor="middle" font-size="13" fill="#1c1915">总盘.md（只有秘书能写）</text>
+        <g font-size="12" text-anchor="middle">
+          <rect x="15" y="170" width="105" height="64" rx="10" fill="#fffdf8" stroke="#2a6f6a" stroke-width="1.5"/>
+          <text x="67" y="196" fill="#1c1915">/稿A/</text><text x="67" y="216" fill="#5e574d" font-size="11">项目 bot A 写</text>
+          <rect x="137" y="170" width="105" height="64" rx="10" fill="#fffdf8" stroke="#b7791f" stroke-width="1.5"/>
+          <text x="189" y="196" fill="#1c1915">/文献馆/</text><text x="189" y="216" fill="#5e574d" font-size="11">文献助手写</text>
+          <rect x="259" y="170" width="105" height="64" rx="10" fill="#fffdf8" stroke="#6b4a8a" stroke-width="1.5"/>
+          <text x="311" y="196" fill="#1c1915">Zotero / Obs.</text><text x="311" y="216" fill="#5e574d" font-size="11">知识库写</text>
+        </g>
+        <line x1="120" y1="132" x2="67" y2="168" stroke="#b7791f" stroke-width="1.6"/>
+        <line x1="190" y1="132" x2="189" y2="168" stroke="#b7791f" stroke-width="1.6"/>
+        <line x1="260" y1="132" x2="311" y2="168" stroke="#b7791f" stroke-width="1.6"/>
+        <text x="190" y="152" text-anchor="middle" font-size="11" fill="#8a5a12">只登记路径，不越权写内容</text>
+        <rect x="15" y="256" width="349" height="60" rx="10" fill="#f3dcdc" stroke="#8a3d3d"/>
+        <text x="190" y="280" text-anchor="middle" font-size="12" fill="#8a3d3d" font-weight="700">口径卡.md — 冻结中</text>
+        <text x="190" y="300" text-anchor="middle" font-size="11" fill="#8a3d3d">主张 / 样本 / 术语；改动必须回网页端 + 人签字</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 8 云端电脑 -->
+<section class="slide" data-notes="和普通聊天 AI 的本质差别：Grok Bot 有一台常驻云端电脑，能落文件、跑长任务、开浏览器。人可以打开它的桌面看它在干什么。">
+  <div class="head">
+    <div class="kicker">02 装置 · 和其他 AI 不一样的地方</div>
+    <h2>Grok Bot 自己有一台<em>云端电脑</em></h2>
+  </div>
+  <div class="body cols">
+    <div>
+      <p>传统聊天 AI 只有会话。Grok Bot 另有一台<strong>常驻的云端电脑</strong>：有文件系统、浏览器、命令行，能装工具、落文件、跑长任务。助手之间共用这台机器上的文件，但各有自己的桌面窗口。</p>
+      <div class="stack" style="margin-top:.6rem">
+        <div class="card"><h3><svg class="ico" style="color:var(--teal)"><use href="#i-folder"/></svg>真正落盘</h3><p>方案、清单、投稿包可以真正写进磁盘，而不是停在气泡里；下次打开的是文件，不是聊天记录。</p></div>
+        <div class="card"><h3><svg class="ico" style="color:var(--gold)"><use href="#i-sync"/></svg>打不开就换路</h3><p>网页打不开时，可以换本机浏览器或本机 CLI 去取，不必让人粘贴全文。</p></div>
+        <div class="card"><h3><svg class="ico" style="color:var(--rose)"><use href="#i-eye"/></svg>可看、可打断</h3><p>人可以打开这台电脑的桌面看它在干什么，也可以随时打断。</p></div>
+      </div>
+    </div>
+    <div class="figure">
+      <svg class="diagram" viewBox="0 0 460 330" aria-label="云端电脑">
+        <defs><filter id="s8" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity=".14"/></filter></defs>
+        <rect x="70" y="14" width="320" height="150" rx="18" fill="#1f3d4d" filter="url(#s8)"/>
+        <text x="230" y="44" text-anchor="middle" fill="#f6f1e7" font-size="15" font-weight="700">Grok Bot 的云端电脑（常驻）</text>
+        <g text-anchor="middle" font-size="11" fill="#d7cfc2">
+          <rect x="88" y="62" width="88" height="82" rx="10" fill="#16303d" stroke="#3f5f6e"/>
+          <svg x="115" y="70" width="34" height="34" viewBox="0 0 24 24" style="color:#9ed3c9"><use href="#i-folder"/></svg>
+          <text x="132" y="130">文件系统</text>
+          <rect x="186" y="62" width="88" height="82" rx="10" fill="#16303d" stroke="#3f5f6e"/>
+          <svg x="213" y="70" width="34" height="34" viewBox="0 0 24 24" style="color:#9ed3c9"><use href="#i-search"/></svg>
+          <text x="230" y="130">浏览器</text>
+          <rect x="284" y="62" width="88" height="82" rx="10" fill="#16303d" stroke="#3f5f6e"/>
+          <svg x="311" y="70" width="34" height="34" viewBox="0 0 24 24" style="color:#9ed3c9"><use href="#i-term"/></svg>
+          <text x="328" y="130">命令行</text>
+        </g>
+        <text x="230" y="186" text-anchor="middle" font-size="11" fill="#5e574d">助手们共用同一块磁盘，各有自己的桌面窗口</text>
+        <g stroke="#b7791f" stroke-width="2">
+          <line x1="230" y1="192" x2="80" y2="240"/><line x1="230" y1="192" x2="230" y2="240"/><line x1="230" y1="192" x2="380" y2="240"/>
+        </g>
+        <g text-anchor="middle" font-size="13" fill="#1c1915">
+          <rect x="25" y="242" width="110" height="60" rx="12" fill="#fffdf8" stroke="#d7cfc2"/>
+          <text x="80" y="268">Mac</text><text x="80" y="288" font-size="11" fill="#5e574d">命令行 · 入馆</text>
+          <rect x="175" y="242" width="110" height="60" rx="12" fill="#fffdf8" stroke="#d7cfc2"/>
+          <text x="230" y="268">Windows</text><text x="230" y="288" font-size="11" fill="#5e574d">Zotero · Obsidian</text>
+          <rect x="325" y="242" width="110" height="60" rx="12" fill="#fffdf8" stroke="#d7cfc2"/>
+          <text x="380" y="268">Android</text><text x="380" y="288" font-size="11" fill="#5e574d">路上下指令</text>
+        </g>
+        <text x="230" y="324" text-anchor="middle" font-size="11" fill="#5e574d">同一个助手，三端同时登录，互通不各聊各的</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 9 多端 -->
+<section class="slide" data-notes="对导师说的话：这不是更会聊天的模型，而是一套能被看见、被打断、产物留在磁盘上的协作装置。">
+  <div class="head">
+    <div class="kicker">02 装置 · 多端</div>
+    <h2>随时随地：下指令、看进度、监督干活</h2>
+  </div>
+  <div class="body">
+    <svg class="diagram" viewBox="0 0 980 140" aria-label="一天的协作">
+      <defs><marker id="ah9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker></defs>
+      <line x1="40" y1="60" x2="940" y2="60" stroke="#d9d1c3" stroke-width="3"/>
+      <g text-anchor="middle" font-size="12">
+        <circle cx="110" cy="60" r="26" fill="#3a3a3a"/><text x="110" y="65" fill="#fff" font-size="12">手机</text>
+        <text x="110" y="18" fill="#1c1915" font-weight="700">路上</text>
+        <text x="110" y="106" fill="#5e574d">补一句指令：</text><text x="110" y="124" fill="#5e574d">「把 X 书拆章转 MD」</text>
+        <line x1="140" y1="60" x2="262" y2="60" stroke="#b7791f" stroke-width="2" marker-end="url(#ah9)"/>
+        <circle cx="300" cy="60" r="26" fill="#1f3d4d"/><text x="300" y="65" fill="#fff" font-size="12">云端</text>
+        <text x="300" y="18" fill="#1c1915" font-weight="700">秘书接单</text>
+        <text x="300" y="106" fill="#5e574d">写进总盘</text><text x="300" y="124" fill="#5e574d">派给文献助手 / CLI</text>
+        <line x1="330" y1="60" x2="452" y2="60" stroke="#b7791f" stroke-width="2" marker-end="url(#ah9)"/>
+        <circle cx="490" cy="60" r="26" fill="#b7791f"/><text x="490" y="65" fill="#fff" font-size="12">Mac</text>
+        <text x="490" y="18" fill="#1c1915" font-weight="700">白天</text>
+        <text x="490" y="106" fill="#5e574d">命令行入馆、拆分</text><text x="490" y="124" fill="#5e574d">转 Markdown</text>
+        <line x1="520" y1="60" x2="642" y2="60" stroke="#b7791f" stroke-width="2" marker-end="url(#ah9)"/>
+        <circle cx="680" cy="60" r="26" fill="#6b4a8a"/><text x="680" y="65" fill="#fff" font-size="12">Win</text>
+        <text x="680" y="18" fill="#1c1915" font-weight="700">回家</text>
+        <text x="680" y="106" fill="#5e574d">Zotero / Obsidian 人读</text><text x="680" y="124" fill="#5e574d">验收文件</text>
+        <line x1="710" y1="60" x2="832" y2="60" stroke="#b7791f" stroke-width="2" marker-end="url(#ah9)"/>
+        <circle cx="870" cy="60" r="26" fill="#2a6f6a"/><text x="870" y="65" fill="#fff" font-size="12">桌面</text>
+        <text x="870" y="18" fill="#1c1915" font-weight="700">随时</text>
+        <text x="870" y="106" fill="#5e574d">打开云端桌面看它在干什么</text><text x="870" y="124" fill="#5e574d">说停就停</text>
+      </g>
+    </svg>
+    <div class="grid grid-4" style="margin-top:.9rem">
+      <div class="card accent-teal"><h3>同时在线</h3><p>不必「先关电脑再开手机」。Mac 做命令行入馆，Windows 开 Zotero / Obsidian 人读，手机补一句指令，秘书都能接到。</p></div>
+      <div class="card accent-navy"><h3>文件各有正本</h3><p>两边磁盘不假装自动同步。学术正本路径写在总盘里。拷过去要验收大小 / 清单，避免两份真相。</p></div>
+      <div class="card accent-gold"><h3>可监督</h3><p>云端桌面可以打开看。本机执行要批准。连不上 Win / Mac 必须马上报，不能悄悄换路。</p></div>
+      <div class="card accent-rose"><h3>可打断</h3><p>说停就停。在审、搁置的项目冻结，不在你睡觉时改主张。</p></div>
+    </div>
+    <div class="one">对导师来说：这不是「一个更会聊天的模型」，而是一套能被看见、被打断、把产物留在磁盘上的协作装置。</div>
+  </div>
+</section>
+
+<!-- 10 通用文献角色 -->
+<section class="slide" data-notes="文献防错的第一道是结构：收、读、核、编四件事分四个号。同一号不得既收又核。">
+  <div class="head">
+    <div class="kicker">03 文献 · 通用文献角色</div>
+    <h2>收、读、核、编目：四件事不让同一个号做完</h2>
+  </div>
+  <div class="body cols wide-left">
+    <table>
+      <tr><th style="width:17%">角色</th><th>做什么</th><th>明确不做</th></tr>
+      <tr><td><strong>文献助手</strong><br><span class="tag cli">收</span></td><td>按主题搜索、合法下载 PDF、转 Markdown、Year_Author_Title 入馆</td><td>不核自己刚收的引用，不写论文正文。STI 与非 STI 分助手，避免领域串味</td></tr>
+      <tr><td><strong>文献精读</strong><br><span class="tag web">读</span></td><td>不绑某篇稿。长书两份产物：给 AI 的分章底稿（原文有 / 公平转述 / 引申、页码可回核）；给人读的连续导读</td><td>不当文献总管；导读必须跟源书，笔记只回核页码，不夸大</td></tr>
+      <tr><td><strong>文献核验</strong><br><span class="tag verify">核</span></td><td>核对通稿里的引用与转述：原文有没有、是否公平、是否引申过载、页码是否对得上。<strong>写作中抽查，定稿后全量</strong></td><td>不下载、不收新文献、不直接改论文。核不出就标「无法核实」</td></tr>
+      <tr><td><strong>文献知识库</strong><br><span class="tag ide">编</span></td><td>人 + AI 共用编目：Zotero 书目与 citekey，Obsidian 索引和阅读笔记</td><td>不是第二座文献馆。不入馆、不核引、不写总盘</td></tr>
+    </table>
+    <div class="figure">
+      <svg class="diagram" viewBox="0 0 360 330" aria-label="四个号环">
+        <defs><marker id="ah10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker></defs>
+        <circle cx="180" cy="165" r="95" fill="none" stroke="#d9d1c3" stroke-width="2" stroke-dasharray="4 5"/>
+        <g text-anchor="middle" font-size="13" font-weight="700">
+          <circle cx="180" cy="55" r="40" fill="#b7791f"/><text x="180" y="52" fill="#fff">收</text><text x="180" y="70" fill="#fbecd0" font-size="10" font-weight="400">文献助手</text>
+          <circle cx="290" cy="165" r="40" fill="#2a6f6a"/><text x="290" y="162" fill="#fff">读</text><text x="290" y="180" fill="#dbeeea" font-size="10" font-weight="400">精读</text>
+          <circle cx="180" cy="275" r="40" fill="#8a3d3d"/><text x="180" y="272" fill="#fff">核</text><text x="180" y="290" fill="#f7dada" font-size="10" font-weight="400">核验</text>
+          <circle cx="70" cy="165" r="40" fill="#6b4a8a"/><text x="70" y="162" fill="#fff">编</text><text x="70" y="180" fill="#ece4f3" font-size="10" font-weight="400">知识库</text>
+        </g>
+        <g stroke="#b7791f" stroke-width="2" fill="none" marker-end="url(#ah10)">
+          <path d="M214 76 A 95 95 0 0 1 270 132"/>
+          <path d="M270 198 A 95 95 0 0 1 214 254"/>
+          <path d="M146 254 A 95 95 0 0 1 90 198"/>
+          <path d="M90 132 A 95 95 0 0 1 146 76"/>
+        </g>
+        <text x="180" y="150" text-anchor="middle" font-size="13" fill="#1c1915" font-weight="700">四个号</text>
+        <text x="180" y="168" text-anchor="middle" font-size="10" fill="#5e574d">交接只靠文件 + 清单</text>
+        <text x="180" y="190" text-anchor="middle" font-size="12" fill="#8a3d3d" font-weight="700">收 ≠ 核</text>
+      </svg>
+    </div>
+  </div>
+  <p class="tiny">同一号不得既收又核。这是防文献出错的第一道结构，不是事后提醒。</p>
+</section>
+
+<!-- 11 Zotero / Obsidian -->
+<section class="slide" data-notes="一条文献一个键。文献助手负责文件入馆，知识库负责 Zotero 条目和 Obsidian 笔记，两边用同一个 citekey 对上。AI 动笔前先查正库。">
+  <div class="head">
+    <div class="kicker">03 文献 · 和 Zotero / Obsidian 怎么接</div>
+    <h2>一条文献一个键，人和 AI 先查正库</h2>
+  </div>
+  <div class="body figure">
+    <svg class="diagram" viewBox="0 0 980 330" aria-label="文献链路">
+      <defs><marker id="ah11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker>
+      <filter id="s11" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".10"/></filter></defs>
+      <g text-anchor="middle">
+        <rect x="20" y="40" width="180" height="120" rx="14" fill="#b7791f" filter="url(#s11)"/>
+        <text x="110" y="74" fill="#fff" font-size="15" font-weight="700">文献助手</text>
+        <text x="110" y="98" fill="#fbecd0" font-size="12">合法下载 PDF</text>
+        <text x="110" y="118" fill="#fbecd0" font-size="12">markitdown 转 MD</text>
+        <text x="110" y="140" fill="#fbecd0" font-size="11">Mac 偏检索 / 拆分</text>
+        <line x1="204" y1="100" x2="236" y2="100" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah11)"/>
+        <rect x="240" y="40" width="200" height="120" rx="14" fill="#fffdf8" stroke="#d7cfc2" filter="url(#s11)"/>
+        <svg x="325" y="52" width="30" height="30" viewBox="0 0 24 24" style="color:#b7791f"><use href="#i-folder"/></svg>
+        <text x="340" y="106" fill="#1c1915" font-size="15" font-weight="700">文献文件夹</text>
+        <text x="340" y="128" fill="#5e574d" font-size="12">Year_Author_Title/</text>
+        <text x="340" y="146" fill="#5e574d" font-size="11">PDF + .md 并列</text>
+        <line x1="444" y1="100" x2="476" y2="100" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah11)"/>
+        <rect x="480" y="26" width="230" height="148" rx="14" fill="#e8efe9" stroke="#2a6f6a" stroke-width="1.5" filter="url(#s11)"/>
+        <svg x="580" y="36" width="30" height="30" viewBox="0 0 24 24" style="color:#2a6f6a"><use href="#i-db"/></svg>
+        <text x="595" y="90" fill="#1c1915" font-size="15" font-weight="700">Zotero</text>
+        <text x="595" y="112" fill="#5e574d" font-size="12">条目 · citekey · 外链附件</text>
+        <text x="595" y="132" fill="#5e574d" font-size="11">Better BibTeX 统一键</text>
+        <text x="595" y="152" fill="#5e574d" font-size="11">不把 PDF 塞进 storage</text>
+        <line x1="714" y1="100" x2="746" y2="100" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah11)"/>
+        <rect x="750" y="26" width="210" height="148" rx="14" fill="#fffdf8" stroke="#6b4a8a" stroke-width="1.5" filter="url(#s11)"/>
+        <svg x="840" y="36" width="30" height="30" viewBox="0 0 24 24" style="color:#6b4a8a"><use href="#i-note"/></svg>
+        <text x="855" y="90" fill="#1c1915" font-size="15" font-weight="700">Obsidian</text>
+        <text x="855" y="112" fill="#5e574d" font-size="12">同 citekey 一张笔记</text>
+        <text x="855" y="132" fill="#5e574d" font-size="11">中文：领域 + 讲什么</text>
+        <text x="855" y="152" fill="#5e574d" font-size="11">已读范围 / 仅书目</text>
+      </g>
+      <rect x="480" y="182" width="480" height="4" fill="#6b4a8a" opacity=".25"/>
+      <text x="720" y="204" text-anchor="middle" font-size="12" fill="#6b4a8a" font-weight="700">文献知识库 owner（Windows）：人和 AI 的引用正库</text>
+      <rect x="20" y="182" width="420" height="4" fill="#b7791f" opacity=".25"/>
+      <text x="230" y="204" text-anchor="middle" font-size="12" fill="#8a5a12" font-weight="700">文献助手 owner（Mac）：文件馆，不是书目库</text>
+      <g text-anchor="middle">
+        <rect x="20" y="228" width="455" height="86" rx="14" fill="#fffdf8" stroke="#d7cfc2"/>
+        <text x="247" y="256" fill="#1c1915" font-size="14" font-weight="700">AI 动笔前先查索引和笔记</text>
+        <text x="247" y="278" fill="#5e574d" font-size="12">不靠聊天记忆凑文献；没有 citekey 的引用不进正文</text>
+        <text x="247" y="298" fill="#5e574d" font-size="11">笔记里标「已读范围」；没读的部分只能标仅书目</text>
+        <rect x="505" y="228" width="455" height="86" rx="14" fill="#fffdf8" stroke="#8a3d3d" stroke-width="1.5"/>
+        <text x="732" y="256" fill="#8a3d3d" font-size="14" font-weight="700">核验角色只读原文 PDF</text>
+        <text x="732" y="278" fill="#5e574d" font-size="12">不看 Obsidian 笔记、不看写稿对话，避免被转述带跑</text>
+        <text x="732" y="298" fill="#5e574d" font-size="11">精读另有源书目录，不建成第二馆</text>
+      </g>
+    </svg>
+  </div>
+  <p class="tiny">机分工：Mac 偏检索、拆分、转 Markdown；Windows 的 Zotero + Obsidian 才是人和 AI 的引用正库。</p>
+</section>
+
+<!-- 12 防文献出错 -->
+<section class="slide" data-notes="三道防线：结构上拆开、转述分四级、页码与已读纪律。不确定就写待核，不用「像真的」页码顶上。">
+  <div class="head">
+    <div class="kicker">03 文献 · 防文献出错</div>
+    <h2>具体怎么防：结构、标准、标记</h2>
+  </div>
+  <div class="body">
+    <div class="cols" style="align-items:stretch">
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div class="card accent-navy"><h3><span class="tag bot">结构</span>结构上拆开</h3><ul><li>收的人不能核自己</li><li>核的人不能顺手下新 PDF</li><li>精读不绑某篇稿，避免为了引用去「读出需要的意思」</li></ul></div>
+        <div class="card accent-teal"><h3><span class="tag web">标准</span>页码与已读</h3><ul><li>页码必须对到原文；对不上就标仅书目</li><li>未读全书，不当成已读</li><li>馆藏没有：标无法核实，交回文献助手补，不编造</li></ul></div>
+        <div class="card accent-gold"><h3><span class="tag cli">标准</span>什么不算文献</h3><ul><li>自己的稿、审稿意见、版权表不进 Zotero</li><li>盗版源文件不入馆</li><li>删除原件必须先列清单确认</li></ul></div>
+        <div class="card accent-rose"><h3><span class="tag verify">标记</span>标记语法</h3><ul><li><strong>【待核】</strong>：有出处但页码 / 原文未对上</li><li><strong>【无法核实】</strong>：馆藏无全文，核验号核不出</li><li><strong>【仅书目】</strong>：只引条目，不引页码与原话</li></ul></div>
+      </div>
+      <div class="card accent-rose" style="display:flex;flex-direction:column;justify-content:center"><h3><span class="tag verify">标准</span>转述四级：每条引用都要判一个等级</h3>
+        <div class="ladder" style="margin-top:.6rem">
+          <div class="l1"><span>原文有</span><small>书上就有这句话的意思 · 可带页码直接引</small></div>
+          <div class="l2"><span>公平转述</span><small>压缩但不增义 · 带页码，用「认为 / 指出」</small></div>
+          <div class="l3"><span>引申</span><small>稿内推论，不当成作者原话 · 写成「由此可推」</small></div>
+          <div class="l4"><span>过载</span><small>超出原文 · 必须改掉或删除，不得保留</small></div>
+        </div>
+        <p style="margin-top:.8rem">精读底稿在写的时候就按这四级标；核验的时候按同一套等级重判。<strong>两次判定不一致，以核验为准。</strong></p>
+      </div>
+    </div>
+    <div class="one rose">不确定就写【待核】或【无法核实】。宁可稿子里少一句硬引，也不用「像真的」页码顶上。</div>
+  </div>
+</section>
+
+<!-- 13 合法获取 -->
+<section class="slide" data-notes="自动化指的是链条可交接，不是绕版权。登录态放本机浏览器，不把账号密码写进提示词。打不开按固定顺序换路，连不上立刻报人。">
+  <div class="head">
+    <div class="kicker">03 文献 · 合法获取</div>
+    <h2>机构账号怎么自动化下载（不走盗版）</h2>
+  </div>
+  <div class="body">
+    <svg class="diagram" viewBox="0 0 980 96" aria-label="获取链条">
+      <defs><marker id="ah13b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker></defs>
+      <g text-anchor="middle" font-size="12" fill="#1c1915">
+        <rect x="10" y="14" width="122" height="68" rx="12" fill="#fffdf8" stroke="#d9d1c3"/>
+        <text x="71" y="42" font-weight="700">① 通稿 / 方案</text><text x="71" y="62" fill="#5e574d" font-size="11">列出缺的文献</text>
+        <line x1="134" y1="48" x2="148" y2="48" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13b)"/>
+        <rect x="150" y="14" width="122" height="68" rx="12" fill="#fffdf8" stroke="#b7791f" stroke-width="1.5"/>
+        <text x="211" y="42" font-weight="700">② 文献助手</text><text x="211" y="62" fill="#5e574d" font-size="11">按主题检索</text>
+        <line x1="274" y1="48" x2="288" y2="48" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13b)"/>
+        <rect x="290" y="14" width="122" height="68" rx="12" fill="#fffdf8" stroke="#d9d1c3"/>
+        <text x="351" y="42" font-weight="700">③ 出版社 /</text><text x="351" y="62" fill="#5e574d" font-size="11">谷歌学术</text>
+        <line x1="414" y1="48" x2="428" y2="48" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13b)"/>
+        <rect x="430" y="14" width="122" height="68" rx="12" fill="#e4efeb" stroke="#2a6f6a" stroke-width="1.5"/>
+        <text x="491" y="42" font-weight="700">④ 机构库</text><text x="491" y="62" fill="#5e574d" font-size="11">已登录会话</text>
+        <line x1="554" y1="48" x2="568" y2="48" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13b)"/>
+        <rect x="570" y="14" width="122" height="68" rx="12" fill="#fffdf8" stroke="#d9d1c3"/>
+        <text x="631" y="42" font-weight="700">⑤ PDF 入馆</text><text x="631" y="62" fill="#5e574d" font-size="11">Year_Author_Title</text>
+        <line x1="694" y1="48" x2="708" y2="48" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13b)"/>
+        <rect x="710" y="14" width="122" height="68" rx="12" fill="#fffdf8" stroke="#d9d1c3"/>
+        <text x="771" y="42" font-weight="700">⑥ markitdown</text><text x="771" y="62" fill="#5e574d" font-size="11">转 Markdown</text>
+        <line x1="834" y1="48" x2="848" y2="48" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13b)"/>
+        <rect x="850" y="14" width="122" height="68" rx="12" fill="#ece4f3" stroke="#6b4a8a" stroke-width="1.5"/>
+        <text x="911" y="42" font-weight="700">⑦ Zotero 链接</text><text x="911" y="62" fill="#5e574d" font-size="11">+ Obsidian 笔记</text>
+      </g>
+    </svg>
+    <div class="cols" style="margin-top:1rem;align-items:stretch">
+      <div class="stack">
+        <div class="card accent-teal"><h3><svg class="ico" style="color:var(--teal)"><use href="#i-key"/></svg>登录态放在本机浏览器</h3><p>学校图书馆、数据库代理事先登录。助手用这台已登录的浏览器或本机 CLI 去取正式页面，<strong>不把账号密码写进提示词</strong>，也不用非法库。</p></div>
+        <div class="card accent-gold"><h3><svg class="ico" style="color:var(--gold)"><use href="#i-sync"/></svg>云端电脑打不开就换路</h3><p>出版社常有 Cloudflare。规则是固定顺序：云端打不开 → 先用 Mac 浏览器 → 再 Windows → 再本机 Grok CLI。连不上要立刻报，不要卡在 403 上问人粘贴全文。</p></div>
+      </div>
+      <div class="figure">
+        <svg class="diagram" viewBox="0 0 440 250" aria-label="换路顺序">
+          <defs><marker id="ah13" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker></defs>
+          <g text-anchor="middle" font-size="13">
+            <rect x="20" y="20" width="180" height="48" rx="10" fill="#1f3d4d"/><text x="110" y="49" fill="#fff" font-weight="700">① 云端电脑浏览器</text>
+            <text x="300" y="49" fill="#8a3d3d" font-size="12">403 / Cloudflare</text>
+            <line x1="110" y1="68" x2="110" y2="84" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13)"/>
+            <rect x="20" y="88" width="180" height="48" rx="10" fill="#fffdf8" stroke="#b7791f" stroke-width="1.6"/><text x="110" y="117" fill="#1c1915" font-weight="700">② Mac 已登录浏览器</text>
+            <text x="300" y="117" fill="#5e574d" font-size="12">机构会话在这里</text>
+            <line x1="110" y1="136" x2="110" y2="152" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13)"/>
+            <rect x="20" y="156" width="180" height="48" rx="10" fill="#fffdf8" stroke="#6b4a8a" stroke-width="1.6"/><text x="110" y="185" fill="#1c1915" font-weight="700">③ Windows 浏览器</text>
+            <line x1="200" y1="180" x2="236" y2="180" stroke="#b7791f" stroke-width="2" marker-end="url(#ah13)"/>
+            <rect x="240" y="156" width="180" height="48" rx="10" fill="#fffdf8" stroke="#b7791f" stroke-width="1.6"/><text x="330" y="185" fill="#1c1915" font-weight="700">④ 本机 Grok CLI</text>
+            <line x1="330" y1="204" x2="330" y2="220" stroke="#8a3d3d" stroke-width="2" marker-end="url(#ah13)"/>
+            <rect x="240" y="222" width="180" height="26" rx="8" fill="#8a3d3d"/><text x="330" y="240" fill="#fff" font-size="12" font-weight="700">都不行 → 立刻报人，停在仅书目</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <p class="tiny">自动化指的是「检索—识别正版全文—下载—命名—转 MD—编目」这条链可交接；不是绕过版权。没有合法全文，就停在仅书目。</p>
+  </div>
+</section>
+
+<!-- 14 最终独立核验：为什么 -->
+<section class="slide" data-notes="这是今天最想强调的一页。写作中的抽查是过程控制，定稿后的独立全量核验才是对外负责的最后一道。核验号必须和写稿、收文献的号无关，只看原文。">
+  <div class="head">
+    <div class="kicker">04 收口 · 最终独立文献核验</div>
+    <h2>写完不等于能交：最后一道是<em style="color:var(--rose)">独立核验</em></h2>
+    <p class="sub">写作中的抽查是过程控制；定稿冻结后，由一个与写作、收集都无关的号，逐条全量核对原文。</p>
+  </div>
+  <div class="body cols">
+    <div class="stack">
+      <div class="card accent-rose"><h3><svg class="ico" style="color:var(--rose)"><use href="#i-flag"/></svg>为什么要「独立」</h3><p>写稿 bot 想让论证成立，收文献的号想证明自己收对了，精读号已经带着自己的转述。<strong>三者都有动机把「像真的」当成真的。</strong>独立号没有这个动机：它没参与写作，不看聊天记录，只拿到冻结稿和原文 PDF。</p></div>
+      <div class="card accent-navy"><h3><svg class="ico" style="color:var(--navy)"><use href="#i-lock"/></svg>为什么要「定稿冻结后」</h3><p>边写边核，核过的句子下一轮又被改掉。只有正文、引用、页码都不再动，核验结果才对得上最后交出去的那一版。<strong>核的必须是提交的那一版。</strong></p></div>
+      <div class="card accent-gold"><h3><svg class="ico" style="color:var(--gold)"><use href="#i-search"/></svg>为什么要「全量」不抽查</h3><p>抽查能发现系统性问题，但对外负责的是每一条。一处伪造页码就足以让整篇稿失信。所以最后一遍是<strong>逐条、全量、可回核</strong>，而不是抽 20%。</p></div>
+    </div>
+    <div class="figure">
+      <svg class="diagram" viewBox="0 0 472 420" aria-label="独立核验闸门">
+        <defs><marker id="ah14" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#b7791f"/></marker>
+        <marker id="ah14r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5 0 10z" fill="#8a3d3d"/></marker>
+        <filter id="s14" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".12"/></filter></defs>
+        <g text-anchor="middle">
+          <rect x="120" y="10" width="200" height="56" rx="12" fill="#1f3d4d" filter="url(#s14)"/>
+          <text x="220" y="33" fill="#fff" font-size="14" font-weight="700">定稿冻结</text>
+          <text x="220" y="53" fill="#d7cfc2" font-size="11">正文 · 引用 · 页码锁定</text>
+          <line x1="220" y1="66" x2="220" y2="96" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah14)"/>
+          <text x="300" y="86" fill="#8a5a12" font-size="11">只交稿 + 原文 PDF</text>
+          <rect x="40" y="100" width="360" height="120" rx="16" fill="#8a3d3d" filter="url(#s14)"/>
+          <svg x="56" y="140" width="40" height="40" viewBox="0 0 24 24" style="color:#f7dada"><use href="#i-shield"/></svg>
+          <text x="238" y="132" fill="#fff" font-size="16" font-weight="700">独立文献核验闸门</text>
+          <text x="238" y="156" fill="#f7dada" font-size="12">独立号：未参与写作 · 不看聊天 · 不看笔记</text>
+          <text x="238" y="176" fill="#f7dada" font-size="12">逐条全量：条目 · citekey · 页码 · 转述等级</text>
+          <text x="238" y="198" fill="#f7dada" font-size="12">只出报告：不改正文 · 不收新文献</text>
+          <line x1="140" y1="220" x2="140" y2="262" stroke="#b7791f" stroke-width="2.5" marker-end="url(#ah14)"/>
+          <text x="98" y="246" fill="#3d7a4a" font-size="12" font-weight="700">全部通过</text>
+          <rect x="40" y="266" width="200" height="64" rx="12" fill="#3a3a3a" filter="url(#s14)"/>
+          <text x="140" y="292" fill="#fff" font-size="14" font-weight="700">人签字核验报告</text>
+          <text x="140" y="314" fill="#e6e3dd" font-size="11">再点提交（秘书验收正本）</text>
+          <line x1="330" y1="220" x2="330" y2="262" stroke="#8a3d3d" stroke-width="2.5" marker-end="url(#ah14r)"/>
+          <text x="372" y="246" fill="#8a3d3d" font-size="12" font-weight="700">任一不过</text>
+          <rect x="260" y="266" width="170" height="120" rx="12" fill="#f3dcdc" stroke="#8a3d3d" stroke-width="1.5"/>
+          <text x="345" y="290" fill="#8a3d3d" font-size="13" font-weight="700">退回项目 bot</text>
+          <text x="345" y="312" fill="#5e574d" font-size="11">过载 → 改转述或删</text>
+          <text x="345" y="330" fill="#5e574d" font-size="11">页码不对 → 删页码 / 降仅书目</text>
+          <text x="345" y="348" fill="#5e574d" font-size="11">无法核实 → 交文献助手补</text>
+          <text x="345" y="366" fill="#5e574d" font-size="11">改主张 → 回网页端</text>
+          <path d="M430 326 L 446 326 L 446 38 L 324 38" fill="none" stroke="#8a3d3d" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah14r)"/>
+          <text transform="translate(460 190) rotate(90)" fill="#8a3d3d" font-size="11" text-anchor="middle">改完 → 重新冻结 → 再核一遍</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 15 核验清单与报告 -->
+<section class="slide" data-notes="核验的具体操作：五项检查、一张报告表。报告是文件，跟稿一起归档；每一行都能回到原文页码。">
+  <div class="head">
+    <div class="kicker">04 收口 · 独立核验怎么做</div>
+    <h2>五项检查，一张报告，每行都能回到原文</h2>
+  </div>
+  <div class="body cols wide-right">
+    <div>
+      <ul class="checklist">
+        <li><strong>条目存在</strong>：参考文献里每一条都能在 Zotero 找到，书目信息（作者、年份、题名、期卷页）与原始出版物一致。</li>
+        <li><strong>键对得上</strong>：正文引注的 citekey 与 Zotero 一致，无孤儿引注、无未被引用的条目。</li>
+        <li><strong>页码可回核</strong>：每个带页码的引用，翻到原文 PDF 那一页确实有对应内容。</li>
+        <li><strong>转述等级重判</strong>：按四级重判：原文有 / 公平转述 / 引申 / 过载；引申须在句式上可见，过载一律退回。</li>
+        <li><strong>已读范围一致</strong>：Obsidian 标「仅书目」或「已读第 X 章」的文献，正文不得写成读过全书。</li>
+      </ul>
+      <div class="one rose" style="margin-top:.8rem">核验号的输入只有两样：<strong>冻结稿</strong>和<strong>原文 PDF</strong>。输出只有一样：<strong>报告</strong>。</div>
+    </div>
+    <div>
+      <table class="compact">
+        <tr><th class="c-verify" style="width:6%">#</th><th class="c-verify">正文引用（节选）</th><th class="c-verify" style="width:23%">citekey / 页码</th><th class="c-verify" style="width:14%">等级</th><th class="c-verify" style="width:27%">处置</th></tr>
+        <tr class="ok"><td>1</td><td>制度环境塑造组织的合法性策略</td><td>author2019xxx, p. 45</td><td><span class="tag ok">原文有</span></td><td>通过</td></tr>
+        <tr class="ok"><td>2</td><td>该框架把风险治理分为三层</td><td>author2011yyy, pp. 12–14</td><td><span class="tag web">公平转述</span></td><td>通过</td></tr>
+        <tr class="warn"><td>3</td><td>由此可推，平台化削弱专业自主</td><td>author2020zzz, p. 88</td><td><span class="tag cli">引申</span></td><td>保留；句式标「由此可推」，去页码</td></tr>
+        <tr class="bad"><td>4</td><td>作者明确主张 X 是 Y 的唯一原因</td><td>author2005www, p. 112</td><td><span class="tag verify">过载</span></td><td>退回：原文无「唯一」；改转述或删</td></tr>
+        <tr class="warn"><td>5</td><td>研究显示……（带页码）</td><td>author2016vvv, p. 203</td><td><span class="tag human">待核</span></td><td>页码对不上（全书 180 页）；降为仅书目</td></tr>
+        <tr class="bad"><td>6</td><td>相关讨论见……</td><td>author2022uuu</td><td><span class="tag human">无法核实</span></td><td>馆藏无全文；交文献助手补，补不到则删</td></tr>
+      </table>
+      <p class="tiny">示例为格式说明，非真实文献。报告以 Markdown 表存于稿目录 <code>/核验/</code>，与提交版一同归档；人签字后才算完成。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 16 流程样板 -->
+<section class="slide" data-notes="用已完成的课程论文过一遍：只讲步骤不讲论点。注意第 6 步是新加的：定稿冻结后独立全量核验，然后才是秘书验收和人提交。">
+  <div class="head">
+    <div class="kicker">04 收口 · 流程样板</div>
+    <h2>用已完成的研究生课程论文走一遍</h2>
+    <p class="sub">只讲步骤，不讲该课论文的论点。它证明这套分工能从材料走到可提交 Word。</p>
+  </div>
+  <div class="body cols wide-left">
+    <ol class="steps">
+      <li data-n="1"><span class="tag web">网页端</span>定问题、材料边界、章节结构；方案另存成文件，写进口径卡。</li>
+      <li data-n="2"><span class="tag bot">本机</span>源材料、编码或细读表、正文 Markdown 分开放，不混在聊天里；秘书登记路径到总盘。</li>
+      <li data-n="3"><span class="tag cli">文献助手 / 知识库</span>用到的文献合法入馆、Zotero 给 citekey、Obsidian 笔记标已读范围。</li>
+      <li data-n="4"><span class="tag ide">CLI / Cursor / Codex</span>套学校模板、处理引号与格式；长文件不进 Grok Bot 对话。</li>
+      <li data-n="5"><span class="tag verify">文献核验（写作中）</span>抽查引用是否对得上原文；不对的改转述或删页码。</li>
+      <li data-n="6" class="key"><span class="tag verify">最终独立核验</span><strong>定稿冻结</strong> → 独立号逐条全量核对原文 → 出报告 → 有退回则改完重新冻结再核。</li>
+      <li data-n="7" class="human"><span class="tag human">秘书验收 + 人</span>正本、模板字段、是否覆盖旧稿；人签字核验报告，<strong>人最后点提交</strong>。</li>
+    </ol>
+    <div class="figure">
+      <svg class="diagram" viewBox="0 0 300 420" aria-label="产物流">
+        <g text-anchor="middle" font-size="12">
+          <rect x="30" y="10" width="240" height="46" rx="10" fill="#e4efeb" stroke="#2a6f6a"/><text x="150" y="30" fill="#1c1915" font-weight="700">方案.md · 口径卡.md</text><text x="150" y="47" fill="#5e574d" font-size="11">网页端产出，另存</text>
+          <line x1="150" y1="56" x2="150" y2="70" stroke="#b7791f" stroke-width="2"/>
+          <rect x="30" y="70" width="240" height="46" rx="10" fill="#fffdf8" stroke="#1f3d4d"/><text x="150" y="90" fill="#1c1915" font-weight="700">/源材料 · /编码表 · /正文</text><text x="150" y="107" fill="#5e574d" font-size="11">三个目录分开，总盘登记</text>
+          <line x1="150" y1="116" x2="150" y2="130" stroke="#b7791f" stroke-width="2"/>
+          <rect x="30" y="130" width="240" height="46" rx="10" fill="#fffdf8" stroke="#b7791f"/><text x="150" y="150" fill="#1c1915" font-weight="700">/文献馆 + Zotero + Obsidian</text><text x="150" y="167" fill="#5e574d" font-size="11">citekey · 已读范围</text>
+          <line x1="150" y1="176" x2="150" y2="190" stroke="#b7791f" stroke-width="2"/>
+          <rect x="30" y="190" width="240" height="46" rx="10" fill="#fffdf8" stroke="#6b4a8a"/><text x="150" y="210" fill="#1c1915" font-weight="700">套模板.docx（草）</text><text x="150" y="227" fill="#5e574d" font-size="11">Cursor / CLI 产出，进稿目录</text>
+          <line x1="150" y1="236" x2="150" y2="250" stroke="#b7791f" stroke-width="2"/>
+          <rect x="30" y="250" width="240" height="46" rx="10" fill="#f3dcdc" stroke="#8a3d3d" stroke-width="1.6"/><text x="150" y="270" fill="#8a3d3d" font-weight="700">定稿冻结 → /核验/报告.md</text><text x="150" y="287" fill="#5e574d" font-size="11">独立号全量核对，逐行可回核</text>
+          <line x1="150" y1="296" x2="150" y2="310" stroke="#b7791f" stroke-width="2"/>
+          <rect x="30" y="310" width="240" height="46" rx="10" fill="#3a3a3a"/><text x="150" y="330" fill="#fff" font-weight="700">提交版.docx + 签字报告</text><text x="150" y="347" fill="#e6e3dd" font-size="11">秘书验收正本，人点提交</text>
+          <text x="150" y="385" fill="#5e574d" font-size="11">每一步的产物都是文件，</text>
+          <text x="150" y="402" fill="#5e574d" font-size="11">下一步只认文件，不认聊天</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 17 对比 -->
+<section class="slide" data-notes="三种形态的定位差别：问询、执行器、调度员。最后一行是新加的：谁来做最后的独立核验。">
+  <div class="head">
+    <div class="kicker">对比</div>
+    <h2>传统网页 AI · Codex / Claude Code · 本机 Grok Bot</h2>
+  </div>
+  <div class="body">
+    <table>
+      <tr><th style="width:10%"></th><th class="c-web">传统网页对话</th><th class="c-ide">Codex / Claude Code</th><th class="c-bot">本机 Grok Bot</th></tr>
+      <tr><td class="row-h">形态</td><td>会话</td><td>对着一个仓库干活的编码代理</td><td>带云端电脑的多角色调度 + 能操作你的 Win / Mac</td></tr>
+      <tr><td class="row-h">记忆</td><td>主要在聊天里</td><td>在 git / 工作区里</td><td>总盘、写入权、口径卡、Zotero / Obsidian</td></tr>
+      <tr><td class="row-h">多稿</td><td>易串</td><td>一次一事很强，多课题要自己切仓</td><td>项目 bot 隔离；在审冻结</td></tr>
+      <tr><td class="row-h">文献</td><td>容易「像真的」</td><td>可写脚本，但不是现成的收 / 核 / 精读分工</td><td>收、精读、核、编目分角色，再链 Zotero</td></tr>
+      <tr><td class="row-h">最终核验</td><td>没有；靠人自己逐条查</td><td>可自建脚本核 DOI / 书目；转述与页码仍要人工</td><td><strong>独立核验号</strong>：定稿冻结后全量核原文，出报告，人签字</td></tr>
+      <tr><td class="row-h">多端</td><td>通常一个浏览器页</td><td>绑开发机</td><td>云端电脑 + Win + Mac + 安卓同时在线</td></tr>
+      <tr><td class="row-h">定位</td><td><strong>问询</strong></td><td><strong>执行器</strong></td><td><strong>科研项目的本机调度员</strong>；判断仍在网页端</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- 18 边界 -->
+<section class="slide" data-notes="人拍板、人要读；助手有明确禁区。产物目标是社会科学论文，不是方法汇报。">
+  <div class="head">
+    <div class="kicker">边界</div>
+    <h2>人还做什么，助手不准做什么</h2>
+  </div>
+  <div class="body">
+    <div class="grid grid-4">
+      <div class="card accent-navy"><h3><svg class="ico" style="color:var(--navy)"><use href="#i-user"/></svg>人拍板</h3><p>研究问题、理论、样本与码本、投不投、署名与伦理披露、是否提交、<strong>核验报告签字</strong>。</p></div>
+      <div class="card accent-teal"><h3><svg class="ico" style="color:var(--teal)"><use href="#i-book"/></svg>人要读</h3><p>导读和关键原文。AI 笔记不等于已经读过。页码仍以源书为准。核验报告里的「原文有」也要人抽看几条。</p></div>
+      <div class="card accent-rose"><h3><svg class="ico" style="color:var(--rose)"><use href="#i-stop"/></svg>助手禁止</h3><p>未读当已读、伪造页码、AI 当作者、自动点投稿、把版权书做成全书译稿、<strong>核验号改正文或收新文献</strong>。</p></div>
+      <div class="card accent-gold"><h3><svg class="ico" style="color:var(--gold)"><use href="#i-flag"/></svg>产物目标</h3><p>社会科学论文，不是方法汇报。工具链再细，若不改主张、样本或可报告方法，就不加细。</p></div>
+    </div>
+    <svg class="diagram" viewBox="0 0 980 120" style="margin-top:1rem" aria-label="人机分界">
+      <rect x="20" y="20" width="450" height="80" rx="14" fill="#3a3a3a"/>
+      <text x="245" y="50" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">人负责判断</text>
+      <text x="245" y="76" text-anchor="middle" fill="#e6e3dd" font-size="12">说什么 · 用哪些材料 · 投哪里 · 签字提交</text>
+      <line x1="490" y1="15" x2="490" y2="105" stroke="#8a3d3d" stroke-width="3" stroke-dasharray="6 5"/>
+      <rect x="510" y="20" width="450" height="80" rx="14" fill="#1f3d4d"/>
+      <text x="735" y="50" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">系统负责不出事</text>
+      <text x="735" y="76" text-anchor="middle" fill="#d7cfc2" font-size="12">不丢文件 · 不串主张 · 不把没读过的书写进参考文献</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 19 收束 -->
+<section class="slide dark" data-notes="五句收束。第五句是今天新加的重点。">
+  <div class="head">
+    <div class="kicker">收束</div>
+    <h2>可以带回去的五句</h2>
+  </div>
+  <div class="body">
+    <ol class="talk">
+      <li>网页端负责论文说什么；本机 Grok Bot 负责东西在哪、谁来做、做完能不能交。</li>
+      <li>它和传统 AI 的差别：自己有云端电脑，并能同时连 Win / Mac / 安卓，文件和进度可监督。</li>
+      <li>文献靠分工防错：收、精读、核验、Zotero / Obsidian 编目不是同一个号；页码对不上就标待核。</li>
+      <li>本地 CLI 和 Cursor 是执行器。想清楚的方案交给它们落地，不要让任何一个窗口独自「写完一篇论文」。</li>
+      <li class="key">写完不等于能交：<strong>定稿冻结后，由未参与写作的独立号逐条全量核对原文，出报告、人签字，才点提交。</strong></li>
+    </ol>
+    <div class="one">人负责判断；系统负责不丢文件、不串主张、不把没读过的书写进参考文献。</div>
+  </div>
+</section>
+
+<!-- 20 讨论 -->
+<section class="slide dark" data-notes="留几分钟讨论。可以请大家针对三点给意见。">
+  <div class="body">
+    <div class="kicker">讨论</div>
+    <h1>谢谢，欢迎讨论</h1>
+    <p class="lead">想听大家意见的三点：</p>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-top:.6rem">
+      <div class="card" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)"><h3 style="color:#f3d9a3">① 核验粒度</h3><p style="color:#cfd7d3">最终独立核验全量逐条，成本可接受吗？哪些类型的引用（经典理论、数据来源）应当强制人读原文？</p></div>
+      <div class="card" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)"><h3 style="color:#f3d9a3">② 分工边界</h3><p style="color:#cfd7d3">「收与核不同号」在小团队 / 单人研究里如何坚持？是否需要组内互核？</p></div>
+      <div class="card" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15)"><h3 style="color:#f3d9a3">③ 可复用性</h3><p style="color:#cfd7d3">总盘 / 口径卡 / 核验报告模板是否可以做成组内共用格式？</p></div>
+    </div>
+    <p class="tiny" style="margin-top:1.4rem">判断在网页端 · 调度在本机 Grok Bot · 长活走本地 CLI / Cursor · 正本在文件夹 · 独立核验后再提交 · 聊天是草稿纸</p>
+  </div>
+</section>
+
+</div>
+
+<aside class="notes" id="notes"></aside>
+<div class="footer">
+  <div>← → / 空格翻页 · F 全屏 · N 讲稿提示 · 地址栏 #页码 可直达 · 适合投影 / 打印</div>
+  <div class="nav"><span id="counter">1 / 1</span><button id="prev" aria-label="上一页">‹</button><button id="next" aria-label="下一页">›</button></div>
+</div>
+<script>
+(function(){
+  const slides=[...document.querySelectorAll('.slide')];
+  const counter=document.getElementById('counter');
+  const progress=document.getElementById('progress');
+  const notes=document.getElementById('notes');
+  let i=0;
+  function show(n,push){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,idx)=>s.classList.toggle('active',idx===i));
+    counter.textContent=(i+1)+' / '+slides.length;
+    progress.style.width=((i+1)/slides.length*100)+'%';
+    notes.innerHTML='<b>讲稿提示 · 第 '+(i+1)+' 页</b>　'+(slides[i].dataset.notes||'');
+    if(push!==false){ try{ history.replaceState(null,'','#'+(i+1)); }catch(e){} }
+  }
+  function fromHash(){
+    const n=parseInt((location.hash||'').replace('#',''),10);
+    show(isNaN(n)?0:n-1,false);
+  }
+  addEventListener('hashchange',fromHash);
+  addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' ','Enter'].includes(e.key)){e.preventDefault();show(i+1)}
+    else if(['ArrowLeft','PageUp','Backspace'].includes(e.key)){e.preventDefault();show(i-1)}
+    else if(e.key==='Home'){e.preventDefault();show(0)}
+    else if(e.key==='End'){e.preventDefault();show(slides.length-1)}
+    else if(e.key==='n'||e.key==='N'){notes.classList.toggle('show')}
+    else if(e.key==='f'||e.key==='F'){
+      if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+  document.getElementById('prev').addEventListener('click',()=>show(i-1));
+  document.getElementById('next').addEventListener('click',()=>show(i+1));
+  let x=null;
+  addEventListener('touchstart',e=>{x=e.changedTouches[0].screenX},{passive:true});
+  addEventListener('touchend',e=>{
+    if(x==null)return;
+    const dx=e.changedTouches[0].screenX-x;
+    if(Math.abs(dx)>40) show(i+(dx<0?1:-1));
+    x=null;
+  },{passive:true});
+  fromHash();
+})();
+</script>
+</body>
+</html>
